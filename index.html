@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptLab - AI Prompt 调试实验室</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0a0a0f;color:#e2e8f0;min-height:100vh;}
+.hero{text-align:center;padding:48px 20px 32px;background:linear-gradient(135deg,#0f172a,#0a0a0f);border-bottom:1px solid #1e293b;}
+.hero h1{font-size:2.2em;color:#f8fafc;margin-bottom:8px;}.hero h1 span{color:#06b6d4;}
+.hero p{color:#64748b;}
+.badge{display:inline-block;background:#06b6d4;color:#0f172a;font-size:0.78em;padding:3px 10px;border-radius:20px;margin-top:10px;font-weight:600;}
+.container{max-width:1100px;margin:0 auto;padding:24px;}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:22px;margin-bottom:18px;}
+.card h2{color:#f8fafc;font-size:1.05em;margin-bottom:14px;border-left:3px solid #06b6d4;padding-left:10px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:768px){.two-col{grid-template-columns:1fr;}}
+label{display:block;font-size:0.82em;color:#64748b;margin-top:10px;}
+textarea,input,select{width:100%;background:#0a0a0f;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0;padding:12px;font-size:0.95em;margin:6px 0;}
+textarea{min-height:120px;font-family:'Courier New',monospace;resize:vertical;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#06b6d4;}
+.prompt-box{background:#0a0a0f;border:1px solid #1e293b;border-radius:8px;padding:16px;font-family:'Courier New',monospace;font-size:0.9em;line-height:1.6;color:#e2e8f0;min-height:100px;white-space:pre-wrap;}
+.var-tag{display:inline-block;background:#1e293b;color:#06b6d4;padding:2px 8px;border-radius:4px;font-size:0.8em;margin:2px;cursor:pointer;}
+.var-tag:hover{background:#06b6d4;color:#0f172a;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.btn{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-size:0.85em;font-weight:500;transition:all 0.2s;}
+.btn-primary{background:#06b6d4;color:#0f172a;}.btn-primary:hover{background:#22d3ee;}
+.btn-secondary{background:#1e293b;color:#e2e8f0;border:1px solid #334155;}.btn-secondary:hover{background:#334155;}
+.btn-success{background:#10b981;color:#fff;}.btn-success:hover{background:#34d399;}
+.templates{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+.template{padding:6px 12px;background:#0a0a0f;border:1px solid #1e293b;border-radius:6px;cursor:pointer;font-size:0.8em;color:#94a3b8;transition:all 0.2s;}
+.template:hover{border-color:#06b6d4;color:#06b6d4;}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0;}
+.metric{background:#0a0a0f;border:1px solid #1e293b;border-radius:8px;padding:12px;text-align:center;}
+.metric-value{font-size:1.4em;color:#06b6d4;font-weight:600;}
+.metric-label{font-size:0.75em;color:#64748b;margin-top:4px;text-transform:uppercase;}
+.history-item{background:#0a0a0f;border:1px solid #1e293b;border-radius:8px;padding:10px 14px;margin:6px 0;cursor:pointer;transition:all 0.2s;}
+.history-item:hover{border-color:#06b6d4;}
+.history-item .title{color:#e2e8f0;font-size:0.9em;}
+.history-item .meta{color:#64748b;font-size:0.75em;margin-top:2px;}
+.tabs{display:flex;gap:0;border-bottom:1px solid #1e293b;margin-bottom:16px;}
+.tab{padding:8px 16px;cursor:pointer;font-size:0.88em;color:#64748b;border-bottom:2px solid transparent;}
+.tab.active{color:#06b6d4;border-bottom-color:#06b6d4;}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+.status{position:fixed;bottom:18px;right:18px;background:#10b981;color:#fff;padding:9px 18px;border-radius:8px;font-size:0.85em;opacity:0;transition:opacity 0.3s;z-index:999;}
+.status.show{opacity:1;}
+footer{text-align:center;padding:28px;color:#475569;font-size:0.8em;border-top:1px solid #1e293b;margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>Prompt<span>Lab</span></h1>
+  <p>AI Prompt 调试实验室 · 模板管理 · 变量替换 · Token 统计</p>
+  <span class="badge">✓ 免费 · 本地存储 · 隐私安全</span>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>📝 Prompt 编辑器</h2>
+    <div class="templates">
+      <div class="template" onclick="loadTemplate('coder')">💻 代码助手</div>
+      <div class="template" onclick="loadTemplate('writer')">✍️ 写作助手</div>
+      <div class="template" onclick="loadTemplate('translator')">🌐 翻译专家</div>
+      <div class="template" onclick="loadTemplate('reviewer')">👀 代码审查</div>
+      <div class="template" onclick="loadTemplate('explainer')">📚 概念解释</div>
+      <div class="template" onclick="loadTemplate('optimizer')">⚡ Prompt 优化</div>
+    </div>
+    <label>System Prompt (系统角色设定)</label>
+    <textarea id="sys-prompt" placeholder="你是一个专业的..." oninput="updateMetrics()">你是一个专业的代码助手，擅长编写清晰、高效的代码。</textarea>
+    <label>User Prompt (用户输入模板，用 {{变量名}} 定义变量)</label>
+    <textarea id="user-prompt" placeholder="请帮我 {{action}} 这段 {{language}} 代码：\n\n{{code}}" oninput="updateMetrics()">请帮我 {{action}} 这段 {{language}} 代码：
+
+{{code}}</textarea>
+    
+    <div class="metrics">
+      <div class="metric"><div class="metric-value" id="m-chars">0</div><div class="metric-label">字符数</div></div>
+      <div class="metric"><div class="metric-value" id="m-tokens">0</div><div class="metric-label">预估 Tokens</div></div>
+      <div class="metric"><div class="metric-value" id="m-vars">0</div><div class="metric-label">变量数</div></div>
+      <div class="metric"><div class="metric-value" id="m-lines">0</div><div class="metric-label">行数</div></div>
+    </div>
+    
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="savePrompt()">💾 保存到本地</button>
+      <button class="btn btn-secondary" onclick="clearPrompt()">🗑 清空</button>
+      <button class="btn btn-success" onclick="copyPrompt()">📋 复制完整 Prompt</button>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h2>🔧 变量填充</h2>
+      <div id="var-inputs">
+        <label>action</label>
+        <input type="text" class="var-value" data-var="action" placeholder="优化" oninput="renderFinal()">
+        <label>language</label>
+        <input type="text" class="var-value" data-var="language" placeholder="Python" oninput="renderFinal()">
+        <label>code</label>
+        <textarea class="var-value" data-var="code" placeholder="def hello():\n    print('hello')" oninput="renderFinal()"></textarea>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>📤 最终输出</h2>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('full')">完整 Prompt</div>
+        <div class="tab" onclick="switchTab('user')">仅 User</div>
+      </div>
+      <div class="tab-panel active" id="tab-full">
+        <div class="prompt-box" id="final-full"></div>
+      </div>
+      <div class="tab-panel" id="tab-user">
+        <div class="prompt-box" id="final-user"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="copyFinal()">📋 复制</button>
+        <button class="btn btn-secondary" onclick="downloadFinal()">💾 下载</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="history-card" style="display:none">
+    <h2>📜 历史记录</h2>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<footer>PromptLab · 免费 · 本地存储 · 不上传任何数据</footer>
+<div class="status" id="status"></div>
+
+<script>
+const templates = {
+  coder: {
+    sys: "你是一个专业的代码助手，擅长编写清晰、高效的代码。",
+    user: "请帮我 {{action}} 这段 {{language}} 代码：\n\n{{code}}"
+  },
+  writer: {
+    sys: "你是一个专业的内容创作者，擅长撰写高质量的文章。",
+    user: "请帮我写一篇关于 {{topic}} 的 {{type}}，目标读者是 {{audience}}，字数要求 {{length}}。"
+  },
+  translator: {
+    sys: "你是一个专业的翻译专家，精通多种语言，翻译准确且自然。",
+    user: "请将以下 {{source_lang}} 内容翻译成 {{target_lang}}，保持原文风格：\n\n{{text}}"
+  },
+  reviewer: {
+    sys: "你是一个资深的代码审查专家，擅长发现代码中的问题和改进点。",
+    user: "请审查以下 {{language}} 代码，找出潜在问题、性能瓶颈和改进建议：\n\n{{code}}"
+  },
+  explainer: {
+    sys: "你是一个优秀的教育者，擅长用简单易懂的方式解释复杂概念。",
+    user: "请用 {{style}} 的方式解释 {{concept}}，假设听众是 {{audience}}。"
+  },
+  optimizer: {
+    sys: "你是一个 Prompt 优化专家，擅长将模糊的需求转化为清晰的 AI 指令。",
+    user: "请优化以下 Prompt，使其更清晰、更具体、更容易让 AI 理解：\n\n{{original_prompt}}"
+  }
+};
+
+let savedPrompts = JSON.parse(localStorage.getItem('promptlab_saved') || '[]');
+
+function showS(m){const e=document.getElementById('status');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2000);}
+
+function loadTemplate(name){
+  const t = templates[name];
+  if(!t)return;
+  document.getElementById('sys-prompt').value = t.sys;
+  document.getElementById('user-prompt').value = t.user;
+  updateMetrics();
+  generateVarInputs();
+  renderFinal();
+  showS('✅ 模板已加载');
+}
+
+function updateMetrics(){
+  const sys = document.getElementById('sys-prompt').value;
+  const user = document.getElementById('user-prompt').value;
+  const full = sys + '\n\n' + user;
+  
+  document.getElementById('m-chars').textContent = full.length;
+  document.getElementById('m-tokens').textContent = Math.ceil(full.length / 4);
+  document.getElementById('m-lines').textContent = full.split('\n').length;
+  
+  const vars = [...user.matchAll(/\{\{(\w+)\}\}/g)].map(m=>m[1]);
+  document.getElementById('m-vars').textContent = [...new Set(vars)].length;
+  
+  generateVarInputs();
+  renderFinal();
+}
+
+function generateVarInputs(){
+  const user = document.getElementById('user-prompt').value;
+  const vars = [...user.matchAll(/\{\{(\w+)\}\}/g)].map(m=>m[1]);
+  const unique = [...new Set(vars)];
+  
+  const container = document.getElementById('var-inputs');
+  const existing = {};
+  container.querySelectorAll('.var-value').forEach(el=>{
+    existing[el.dataset.var] = el.value;
+  });
+  
+  container.innerHTML = unique.map(v=>`
+    <label>${v}</label>
+    <input type="text" class="var-value" data-var="${v}" placeholder="输入 ${v}..." value="${existing[v]||''}" oninput="renderFinal()">
+  `).join('');
+}
+
+function renderFinal(){
+  const sys = document.getElementById('sys-prompt').value;
+  let user = document.getElementById('user-prompt').value;
+  
+  document.querySelectorAll('.var-value').forEach(el=>{
+    const varName = el.dataset.var;
+    const value = el.value;
+    user = user.replace(new RegExp(`\\{\\{${varName}\\}\\}`,'g'), value);
+  });
+  
+  const full = `[System]\n${sys}\n\n[User]\n${user}`;
+  document.getElementById('final-full').textContent = full;
+  document.getElementById('final-user').textContent = user;
+}
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['full','user'][i]===t));
+  document.querySelectorAll('.tab-panel').forEach((el,i)=>el.classList.toggle('active',['tab-full','tab-user'][i]==='tab-'+t));
+}
+
+function copyPrompt(){
+  const sys = document.getElementById('sys-prompt').value;
+  const user = document.getElementById('user-prompt').value;
+  navigator.clipboard.writeText(`[System]\n${sys}\n\n[User]\n${user}`).then(()=>showS('✅ 已复制'));
+}
+
+function copyFinal(){
+  const isFull = document.querySelector('.tab.active').textContent.includes('完整');
+  const text = isFull ? document.getElementById('final-full').textContent : document.getElementById('final-user').textContent;
+  navigator.clipboard.writeText(text).then(()=>showS('✅ 已复制'));
+}
+
+function downloadFinal(){
+  const text = document.getElementById('final-full').textContent;
+  const blob = new Blob([text], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'prompt.txt';
+  a.click();
+}
+
+function savePrompt(){
+  const name = prompt('给这个 Prompt 起个名字：');
+  if(!name)return;
+  const promptData = {
+    name,
+    sys: document.getElementById('sys-prompt').value,
+    user: document.getElementById('user-prompt').value,
+    time: new Date().toLocaleString('zh-CN')
+  };
+  savedPrompts.unshift(promptData);
+  if(savedPrompts.length > 20) savedPrompts = savedPrompts.slice(0, 20);
+  localStorage.setItem('promptlab_saved', JSON.stringify(savedPrompts));
+  renderHistory();
+  showS('✅ 已保存');
+}
+
+function renderHistory(){
+  if(savedPrompts.length === 0) return;
+  document.getElementById('history-card').style.display = 'block';
+  document.getElementById('history-list').innerHTML = savedPrompts.map((p,i)=>`
+    <div class="history-item" onclick="loadSaved(${i})">
+      <div class="title">${p.name}</div>
+      <div class="meta">${p.time} · ${p.user.length} 字符</div>
+    </div>
+  `).join('');
+}
+
+function loadSaved(i){
+  const p = savedPrompts[i];
+  document.getElementById('sys-prompt').value = p.sys;
+  document.getElementById('user-prompt').value = p.user;
+  updateMetrics();
+  showS('✅ 已加载');
+}
+
+function clearPrompt(){
+  if(confirm('确定清空当前内容？')){
+    document.getElementById('sys-prompt').value = '';
+    document.getElementById('user-prompt').value = '';
+    updateMetrics();
+  }
+}
+
+// Init
+updateMetrics();
+renderHistory();
+</script>
+</body>
+</html>
